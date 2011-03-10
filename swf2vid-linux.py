@@ -22,8 +22,8 @@ frame_dir = "/tmp/"
 tmpdir = "/tmp"
 
 #for debug
-writeAudio = False
-writeFrames = False
+writeAudio = True
+writeFrames = True
 writeMpeg = True
 	
 def check_deps():
