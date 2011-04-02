@@ -125,24 +125,29 @@ audio_file = os.path.join(os.path.dirname(inp), os.path.basename(inp) + ".TMP.wa
 frame_format = tmpdir + "/gnash-%f.png"
 
 out = sys.argv[2]
+
+def status_output (command):
+	pipe = Popen(command, stdout=PIPE)
+	(out, err) = pipe.communicate()
+	pipe.wait()
+	return [pipe.returncode, out]
+
 #get frames
-pipe = Popen(["swfdump","-f",inp], stdout=PIPE)
-(swfdump, err) = pipe.communicate()
-if os.WEXITSTATUS(pipe.close()) != 0:
+swfdump = status_output(["swfdump","-f",inp])
+if swfdump[0] != 0:
 	print "Err: swfdump exited non-zero."
 	exit()
-frames = int(swfdump.split(' ')[1])
+frames = int(swfdump[1].split(' ')[1])
 print "Debug: Frames - "+str(frames)
 
 #get framerate
 
-pipe = Popen(["swfdump","-r",inp], stdout=PIPE)
-(swfdump, err) = pipe.communicate()
-if os.WEXITSTATUS(pipe.close()) != 0:
+swfdump = status_output(["swfdump","-f",inp])
+if swfdump[0] != 0:
 	print "Err: swfdump exited non-zero."
 	exit()
 
-rate = float(swfdump.split(' ')[1])
+rate = float(swfdump[1].split(' ')[1])
 print "Debug: Rate - "+str(rate)
 
 print "Processing {0}".format(inp)
@@ -158,7 +163,8 @@ print "Frames to write: "+str(frames)
 #audio_result.wait()
 if writeAudio:
 	print "Extracting audio... ("+inp+")"
-	audio_result = os.system('gnash --once -A '+audio_file+' -r 2 '+inp)
+	print 'gnash --once -A "'+audio_file+'" -r 2 "'+inp+'"'
+	audio_result = os.system('gnash --once -A "'+audio_file+'" -r 2 "'+inp+'"')
 
 	if audio_result != 0:
 		print "Something went wrong! "+str(audio_result)
