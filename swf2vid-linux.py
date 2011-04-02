@@ -17,21 +17,37 @@ import shutil
 import sys
 import subprocess
 import commands
+from subprocess import Popen, PIPE
 
-frame_dir = "/tmp/"
-tmpdir = "/tmp"
+frame_dir = "tmp/"
+tmpdir = "tmp/"
 
 #for debug
 writeAudio = True
 writeFrames = True
 writeMpeg = True
+
+def command_exists (name):
+	if sys.platform == "win32":
+		filename = "which.bat"
+	else:
+		filename = "which"
+	
+	(swfdumpo, swfdumpe) = Popen([filename,"swfdump"], stdout=PIPE).communicate()
+	
+	if sys.platform == "win32":
+		return not (swfdumpo == "")
+	else:
+		return not (swfdumpo.startswith("/usr/bin/which"))
 	
 def check_deps():
 	platform = commands.getoutput("lsb_release -sa | head -1") #SHELL FORK. (CGI!)
 	
+	doReturn1 = False
+	
 	#check for swftools
-	swfdump = commands.getstatusoutput('which swfdump')
-	if swfdump[0] != 0:
+	if not command_exists("swfdump"):
+		doReturn1 = True
 		print "Err: swfdump is not installed!"
 		if platform == "Ubuntu" or platform == "Debian":
 			inst = raw_input("Would you like to install it? [y/n]: ")
@@ -46,8 +62,8 @@ def check_deps():
 			exit()
 		
 	#check for gnash
-	gnash = commands.getstatusoutput('which gnash')
-	if gnash[0] != 0:
+	if not command_exists("gnash"):
+		doReturn1 = True
 		print "Err:  gnash is not installed!"
 		if platform == "Ubuntu" or platform == "Debian":
 			inst = raw_input("Would you like to install it? [y/n]: ")
@@ -67,8 +83,8 @@ def check_deps():
 					exit()
 					
 	#check for ffmpeg
-	ffmpeg = commands.getstatusoutput('which ffmpeg')
-	if ffmpeg[0] != 0:
+	if not command_exists("ffmpeg"):
+		doReturn1 = True
 		print "Err: ffmpeg is not installed!"
 		if platform == "Ubuntu" or platform == "Debian":
 			inst = raw_input("Would you like to install it? [y/n]: ")
@@ -87,7 +103,7 @@ def check_deps():
 					print "Error in install. Exiting."
 					exit()
 	
-	if swfdump[0] != 0 or gnash[0] != 0 or ffmpeg[0] != 0:
+	if doReturn1:
 		return 1
 	else:
 		return 0
@@ -110,20 +126,23 @@ frame_format = tmpdir + "/gnash-%f.png"
 
 out = sys.argv[2]
 #get frames
-swfdump = commands.getstatusoutput('swfdump -f '+inp)
-if swfdump[0] != 0:
+pipe = Popen(["swfdump","-f",inp], stdout=PIPE)
+(swfdump, err) = pipe.communicate()
+if os.WEXITSTATUS(pipe.close()) != 0:
 	print "Err: swfdump exited non-zero."
 	exit()
-frames = int(swfdump[1].split(' ')[1])
+frames = int(swfdump.split(' ')[1])
 print "Debug: Frames - "+str(frames)
 
 #get framerate
-swfdump = commands.getstatusoutput('swfdump -r '+inp)
-if swfdump[0] != 0:
+
+pipe = Popen(["swfdump","-r",inp], stdout=PIPE)
+(swfdump, err) = pipe.communicate()
+if os.WEXITSTATUS(pipe.close()) != 0:
 	print "Err: swfdump exited non-zero."
 	exit()
 
-rate = float(swfdump[1].split(' ')[1])
+rate = float(swfdump.split(' ')[1])
 print "Debug: Rate - "+str(rate)
 
 print "Processing {0}".format(inp)
@@ -169,5 +188,9 @@ if ffmpeg != 0:
 
 print "Rendering complete. Cleaining up..."
 os.remove(audio_file)
-os.system('rm -rf /tmp/gnash*')
+
+if sys.platform == "win32":
+	os.system('del /FQ tmp/gnash*')
+else:
+	os.system('rm -rf tmp/gnash*')
 exit()

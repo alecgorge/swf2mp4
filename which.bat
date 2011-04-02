@@ -1,0 +1,1 @@
+@for %%e in (%PATHEXT%;.dll) do @for %%i in (%~n1%%e) do @if NOT "%%~$PATH:i"=="" echo %%~$PATH:i
